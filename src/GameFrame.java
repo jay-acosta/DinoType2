@@ -6,6 +6,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.Set;
 
 /**
  * For use in the game DinoType (Version 2)
@@ -28,17 +29,20 @@ public class GameFrame extends JFrame {
 
     // cards contains all the current panels and stores them in a CardLayout format
     private JPanel cards;
-    private JLabel tempLabel;
     private int difficulty = 0;
+    private String fileName;
 
-    public GameFrame() {
+    private FileManager fileManager;
+
+    public GameFrame(FileManager fileManager) {
+        this.fileManager = fileManager;
         initializeGameStates();
     }
 
     private void initializeGameStates() {
 
         // set up the main JFrame of the program
-        setName(GAME_NAME);
+        setTitle(GAME_NAME);
         setSize(WIDTH, HEIGHT);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBackground(Color.BLACK);
@@ -51,7 +55,7 @@ public class GameFrame extends JFrame {
 
         // set up game states
         setUpMainMenu();
-        // setUpSelectionScreen();
+        setUpSelectionScreen();
         setUpGameScreen();
 
         // add the CardLayout to the content pane
@@ -77,17 +81,11 @@ public class GameFrame extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // set properties for temporary difficulty label
-        tempLabel = new JLabel("Type 1, 2, 3, or 4 to select difficulty");
-        tempLabel.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
-        tempLabel.setForeground(Color.WHITE);
-        tempLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // create a new box rigid area for spacing
         panel.add(Box.createRigidArea(new Dimension(1, 20)));
 
         panel.add(titleLabel);
-        panel.add(tempLabel);
         panel.add(Box.createVerticalGlue());
 
         JButton[] buttons = new JButton[2];
@@ -95,20 +93,17 @@ public class GameFrame extends JFrame {
         buttons[0] = new JButton("Start Game");
         buttons[1] = new JButton("Exit");
 
-        buttons[0].addActionListener(new TransitionState(GAME_STATE));
-        buttons[1].addActionListener(new TransitionState(EXIT_STATE));
+        buttons[0].addActionListener(new TransitionState(MAIN_MENU_STATE, SELECTION_STATE));
+        buttons[1].addActionListener(new TransitionState(MAIN_MENU_STATE, EXIT_STATE));
 
         for (JButton button : buttons) {
-            button.setBackground(Color.BLACK);
-            button.setForeground(Color.WHITE);
+            button.setFont(new Font("Comic Sans MS", Font.BOLD, 20));
             button.setAlignmentX(Component.CENTER_ALIGNMENT);
             panel.add(button);
         }
 
-        // use vertical glue to space out the JButton s
+        // use vertical glue to space out the JButton's
         panel.add(Box.createVerticalGlue());
-
-        panel.addKeyListener(new DifficultyPicker());
 
         // add the current panel to the card layout container with the name MAIN_MENU_STATE
         cards.add(panel, MAIN_MENU_STATE);
@@ -118,60 +113,64 @@ public class GameFrame extends JFrame {
     // pre: FileManager != null
     // post: sets the GUI for the selection screen for all prompts
     private void setUpSelectionScreen() {
+        JPanel panel = new JPanel();
+        // panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        panel.setBackground(Color.BLACK);
 
+        Set<String> keySet = fileManager.getFilesInAlphabeticalOrder().keySet();
+
+        String[] promptArr = new String[keySet.size()];
+        int index = 0;
+        for (String key : keySet) {
+            promptArr[index++] = key;
+        }
+
+        JComboBox<String> promptChoices = new JComboBox<>(promptArr);
+        JComboBox<String> difficultyChoices = new JComboBox<>(new String[]{"Easy", "Medium", "Hard", "Very Hard"});
+
+        promptChoices.addActionListener(e -> {
+            fileName = promptChoices.getItemAt(promptChoices.getSelectedIndex());
+        });
+
+        difficultyChoices.addActionListener(e ->
+                difficulty = difficultyChoices.getSelectedIndex()
+        );
+
+        JButton go = new JButton("Play game!");
+        JButton random = new JButton("Play random!");
+        JButton backToMain = new JButton("Back to Main Menu");
+        random.setName("RANDOM_BUTTON");
+
+        go.addActionListener(new TransitionState(SELECTION_STATE, GAME_STATE));
+        random.addActionListener(new TransitionState(random.getName(), GAME_STATE));
+        backToMain.addActionListener(new TransitionState(SELECTION_STATE, MAIN_MENU_STATE));
+
+        // add components to the panel
+        panel.add(promptChoices);
+        panel.add(difficultyChoices);
+        panel.add(go);
+        panel.add(random);
+        panel.add(backToMain);
+
+        cards.add(panel, SELECTION_STATE);
     }
 
     // pre: none
     // post: sets the GUI for the game screen
     private void setUpGameScreen() {
         GamePanel gamePanel = new GamePanel();
-        gamePanel.setGameEndTransition(new TransitionState(MAIN_MENU_STATE));
+        gamePanel.setGameEndTransition(new TransitionState(GAME_STATE, MAIN_MENU_STATE));
         cards.add(gamePanel, GAME_STATE);
-    }
-
-    private class DifficultyPicker implements KeyListener {
-
-        @Override
-        public void keyTyped(KeyEvent e) {
-            char keyChar = e.getKeyChar();
-
-
-            if (keyChar == '1') {
-                difficulty = 0;
-                tempLabel.setText("Selected Easy");
-            }
-            if (keyChar == '2') {
-                difficulty = 1;
-                tempLabel.setText("Selected Medium");
-            }
-            if (keyChar == '3') {
-                difficulty = 2;
-                tempLabel.setText("Selected Hard");
-            }
-            if (keyChar == '4') {
-                difficulty = 3;
-                tempLabel.setText("Selected Very Hard");
-            }
-
-        }
-
-        @Override
-        public void keyPressed(KeyEvent e) {
-
-        }
-
-        @Override
-        public void keyReleased(KeyEvent e) {
-
-        }
     }
 
     public class TransitionState implements ActionListener {
 
-        private String menuName;
+        private String to;
+        private String from;
 
-        private TransitionState(String goTo) {
-            menuName = goTo;
+        private TransitionState(String from, String goTo) {
+            this.from = from;
+            this.to = goTo;
         }
 
         public void actionPerformed(ActionEvent e) {
@@ -179,11 +178,11 @@ public class GameFrame extends JFrame {
         }
 
         public void goToPanel() {
-            if (menuName.equals(EXIT_STATE)) {
+            if (to.equals(EXIT_STATE)) {
                 System.out.println("Exiting...");
                 System.exit(69);
             } else {
-                currentLayout.show(cards, menuName);
+                currentLayout.show(cards, to);
 
                 JPanel currentPanel = getCurrentPanel();
                 assert currentPanel != null : "what, game panel was null? bruh moment";
@@ -193,7 +192,12 @@ public class GameFrame extends JFrame {
                 if (currentPanel instanceof GamePanel) {
                     GamePanel gamePanel = (GamePanel) currentPanel;
                     gamePanel.resetGame();
-                    gamePanel.setCurrentPrompt(FileManager.getRandomPrompt());
+
+                    if (from.equals("RANDOM_BUTTON")) {
+                        gamePanel.setCurrentPrompt(FileManager.getRandomPrompt());
+                    } else {
+                        gamePanel.setCurrentPrompt(FileManager.getTextFiles().get(fileName));
+                    }
                     gamePanel.setDifficulty(difficulty);
                 }
             }

@@ -4,7 +4,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.List;
@@ -21,13 +20,13 @@ public class GamePanel extends JPanel {
             25 * WIDTH / 3000,
             50 * WIDTH / 3000,
             75 * WIDTH / 3000,
-            100 * WIDTH / 3000
+            120 * WIDTH / 3000
     };
-    // turn into local
     private final Font FONT = new Font("Comic Sans MS", Font.BOLD, 20);
-    private boolean gameStarted;
+
     // instance variables
     private boolean error;
+    private boolean gameStarted;
 
     private int lives;
     private int dinoX;
@@ -41,7 +40,7 @@ public class GamePanel extends JPanel {
 
     private StringBuilder currentText;
 
-    private GameFrame.TransitionState mainMenu;
+    private GameFrame.TransitionState stateAfterDone; // for exiting to the main menu
 
     public GamePanel() {
 
@@ -85,7 +84,7 @@ public class GamePanel extends JPanel {
         }
 
         gameStarted = false;
-        setDifficulty((int) (Math.random() * 4));
+        error = false;
 
         Queue<String> sample = new LinkedList<>();
         sample.add("The current text file is empty.");
@@ -104,9 +103,8 @@ public class GamePanel extends JPanel {
     private Queue<String> makeDeepCopy(Queue<String> source) {
         Queue<String> result = new LinkedList<>();
 
-        Iterator<String> it = source.iterator();
-        while (it.hasNext()) {
-            result.add(it.next());
+        for (String s : source) {
+            result.add(s);
         }
 
         return result;
@@ -124,8 +122,9 @@ public class GamePanel extends JPanel {
 
         graphics.drawString(currentText.toString(), 0, HEIGHT - 4 * 20);
         graphics.drawString("Laps left: " + lives, 0, 2 * 20);
+        graphics.drawString("Prompts left: " + promptQueue.size(), 0, 4 * 20);
 
-        graphics.drawImage(frames.get(frameIndex), dinoX - 200, 80, null);
+        graphics.drawImage(frames.get(frameIndex), dinoX - 200, 120, null);
     }
 
     // clears the current graphics on the panel by filling the canvas with a rectangle
@@ -135,13 +134,14 @@ public class GamePanel extends JPanel {
     }
 
     public void setGameEndTransition(GameFrame.TransitionState transition) {
-        mainMenu = transition;
+        stateAfterDone = transition;
     }
 
     private void checkGameConditions() {
 
         // the following conditionals will be checked if the current prompt is not empty
         if (!promptQueue.isEmpty()) {
+
             // fairly inefficient solution, will do for now
 
             String currentPrompt = promptQueue.peek();
@@ -157,9 +157,8 @@ public class GamePanel extends JPanel {
                 if (promptQueue.isEmpty()) {
                     // if the current queue is empty, we won!
                     gameTimer.stop();
-                    System.out.println("Done!");
 
-                    mainMenu.goToPanel();
+                    stateAfterDone.goToPanel();
 
                 } else {
                     // otherwise, clear the current text for the player (make a new StringBuilder)
@@ -177,8 +176,11 @@ public class GamePanel extends JPanel {
         }
     }
 
+    /**
+     * The KeyboardEar class handles all of the key typing event
+     * while the game is in play
+     */
     private class KeyboardEar implements KeyListener {
-
         public void keyTyped(KeyEvent e) {
 
             if (!gameStarted) {
@@ -228,8 +230,8 @@ public class GamePanel extends JPanel {
 
             if (lives <= 0) {
 
-                resetGame();
-                mainMenu.goToPanel();
+                gameTimer.stop();
+                stateAfterDone.goToPanel();
             }
 
             frameIndex = (frameIndex + 1) % frames.size();

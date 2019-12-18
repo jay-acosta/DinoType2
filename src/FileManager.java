@@ -61,7 +61,7 @@ public class FileManager {
         return textFiles;
     }
 
-    public static Map<String, Queue<String>> getFilesInAlphabeticalOrder() {
+    public Map<String, Queue<String>> getFilesInAlphabeticalOrder() {
         return new TreeMap<>(textFiles);
     }
 
@@ -116,27 +116,25 @@ public class FileManager {
 
                             int index;
                             for (index = 0; index < currentLine.length() - CHAR_CAP; index += CHAR_CAP) {
-                                promptQueue.add(currentLine.substring(index, index + CHAR_CAP) + "-");
+                                promptQueue.add(currentLine.substring(index, index + CHAR_CAP).trim() + "-");
                             }
 
                             promptQueue.add(currentLine.substring(index));
                         }
                     }
 
-                    // if(promptSegment.length() != 0) {
-                    //     promptQueue.add(promptSegment.toString().trim());
-                    // }
-
                     // add this word list to the map
-                    textFiles.put(textFile.getName(), promptQueue);
+                    if (!promptQueue.isEmpty()) {
+                        textFiles.put(textFile.getName(), promptQueue);
+                    }
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
-                System.out.println("could not find the file " + textFile.getName());
+                System.out.println(" error while trying to read " + textFile.getName());
             }
         }
 
-        System.out.println("Successfully loaded " + promptFiles.length + " files.");
+        System.out.println("Successfully loaded " + textFiles.size() + " files.");
     }
 
     private void updateFrameFiles() {
@@ -147,7 +145,7 @@ public class FileManager {
             throw new IllegalStateException("the directory " + directory.getPath() + " does not exist within game files.");
         }
 
-        System.out.println("Loading images...");
+        System.out.println("Loading dino frames...");
 
         // get all files in the directory that are .jpg files
         FilenameFilter imageFilter = new GenericFilenameFilter("jpg");
