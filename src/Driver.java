@@ -6,6 +6,6 @@ public class Driver {
     public static void main(String[] args) {
 
         FileManager file = new FileManager();
-        GameManager game = new GameManager();
+        GameFrame game = new GameFrame();
     }
 }

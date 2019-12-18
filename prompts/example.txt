@@ -1,2 +1,0 @@
-This is a text file with an example prompt.
-This can include as many lines as you want.
